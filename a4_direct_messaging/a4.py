@@ -19,10 +19,8 @@ import ds_messenger
 import Profile
 import ui
 
-
 HOST = "168.235.86.101"
 PORT = 3021
-
 
 class Editing:
 

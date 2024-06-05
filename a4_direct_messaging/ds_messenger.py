@@ -65,18 +65,17 @@ class DirectMessenger:
                 user_token = dm_conn["token"]
 
 
-                messages = self.get_messages_list(connection, user_token, new = True)
+                messages = self.get_messages_list(connection, user_token, True)
 
                 ds_client.disconnect(connection)
 
-                print(messages) #test
                 return messages
     
         except ds_client.DSUServerError:
             print("ERROR: MESSAGES NOT RETRIEVED")
             return None
 
-    def retrieve_all(self) -> list:
+    def retrieve_all(self, print_out = True) -> list:
         # must return a list of DirectMessage objects containing all messages
         try:
             dm_conn = self.connect_dm()
@@ -88,11 +87,10 @@ class DirectMessenger:
                 connection = dm_conn["conn"]
                 user_token = dm_conn["token"]
 
-                messages = self.get_messages_list(connection, user_token, new = False)
+                messages = self.get_messages_list(connection, user_token, False, print_out)
                 
                 ds_client.disconnect(connection)
 
-                print(messages) #test
                 return messages
     
         except ds_client.DSUServerError:
@@ -115,14 +113,14 @@ class DirectMessenger:
             return None
 
     def get_messages_list(self, conn: ds_client.Connection, token: str,
-                          new: bool) -> list:
+                          new: bool, output = True) -> list:
         try:
             if new:
                 ds_client.send_new_req(conn, token)
             else:
                 ds_client.send_all_req(conn, token)
             svr_msg = (ds_client.read_message(conn))
-            msg_list = ds_protocol.interpret_svr_message_list(svr_msg)
+            msg_list = ds_protocol.interpret_svr_message_list(svr_msg, output)
             return msg_list
 
         except ds_client.DSUServerError:
@@ -164,6 +162,13 @@ class DirectMessenger:
         print(ui.OUTPUT_COMMAND_INVALID)
         return False
 
+    def save_dms_local(self, prof_path: str) -> None:
+        msg_hist = self.retrieve_all(False)
+        profile = Profile.Profile()
+        profile.load_profile(prof_path)
+        profile.update_messages(msg_hist)
+        profile.save_profile(prof_path)
+
     def dm_run(self, path: str, mode: bool):
     
         '''
@@ -175,6 +180,8 @@ class DirectMessenger:
         dm_command = self.dm_command_intake(path, mode)
 
         if dm_command.strip() != "Q":
+            self.save_dms_local(path)
+
             try:
                 dm_command = shlex.split(dm_command)
 
@@ -197,4 +204,3 @@ class DirectMessenger:
                     self.retrieve_all()
 
                 self.dm_run(path, mode)
-

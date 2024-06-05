@@ -93,6 +93,33 @@ class Post(dict):
     timestamp = property(get_time, set_time)
 
 
+class Messages(dict):
+    """
+
+    The Messages class is responsible for working with the messages that
+    a user has reeived in the past, allowing local storage so that the
+    messages are accessible without an internet connection.
+
+    """
+
+    def __init__(self, msg: str, sender: str, timestamp: float):
+        self.msg = msg
+        self.sender = sender
+        self.timestamp = timestamp
+
+        dict.__init__(self, msg=self.msg, sender=self.sender,
+                      timestamp=self.timestamp)
+
+    def get_message(self):
+        return self._msg
+
+    def get_sender(self):
+        return self._sender
+
+    def get_time(self):
+        return self._timestamp
+
+
 class Profile:
     """
 
@@ -115,6 +142,7 @@ class Profile:
         self.password = password  # REQUIRED
         self.bio = ''             # OPTIONAL
         self._posts = []          # OPTIONAL
+        self._messages = {}        # OPTIONAL
 
     """
 
@@ -171,6 +199,35 @@ class Profile:
     Raises DsuFileError
 
     """
+    def make_reversed_messages(self, msg_list: list) -> list: 
+        list_of_messages = []
+        for msg in msg_list:
+            new_msg = Messages(msg["message"], msg["from"], msg["timestamp"])
+            list_of_messages.append(new_msg)
+        return list_of_messages[::-1]
+    
+    def reorganize_message_list(self, msg_list: list) -> dict:
+        senders_new_old = []
+
+        for msg in msg_list:
+            if msg.sender not in senders_new_old:
+                senders_new_old.append(msg.sender)
+        
+        message_dict = {}
+    
+        for sender in senders_new_old:
+            message_dict[sender] = []
+            for msg in msg_list:
+                if msg.sender == sender:
+                    message_dict[sender].append(msg)
+
+        return message_dict
+
+    def update_messages(self, all_messages: list) -> None:
+
+        msgs_new_old = self.make_reversed_messages(all_messages)
+        chronological_msgs = self.reorganize_message_list(msgs_new_old)
+        self._messages = chronological_msgs
 
     def save_profile(self, path: str) -> None:
         p = Path(path)
@@ -214,6 +271,14 @@ class Profile:
                 for post_obj in obj['_posts']:
                     post = Post(post_obj['entry'], post_obj['timestamp'])
                     self._posts.append(post)
+        
+                for sender_obj in obj['_messages']:
+                    sender_msg_list = []
+                    for msg in obj['_messages'][sender_obj]:
+                        new_msg = Messages(msg['msg'], msg['sender'], msg['timestamp'])
+                        sender_msg_list.append(new_msg)
+                    self._messages[sender_obj] = sender_msg_list
+
                 f.close()
             except Exception as ex:
                 raise DsuProfileError(ex)

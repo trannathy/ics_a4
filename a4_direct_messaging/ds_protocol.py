@@ -160,41 +160,6 @@ def create_all_dm_message(user_token: str) -> str:
     return msg
 
 
-# def send_dm(conn: ds_client.Connection, rec: str, msg: str, 
-#                 token: str):
-  
-#         '''
-
-#         Sends a json message to the DSU server to send a dm
-
-#         '''
-
-#         send_dm_msg = create_send_dm_message(msg, rec, token)
-#         ds_client.write_to_svr(conn, send_dm_msg)
-
-# def send_new_req(conn: ds_client.Connection, token: str):
-          
-#         '''
-
-#         Sends a json message to the DSU server to request unread/new messages
-
-#         '''
-
-#         send_new_req_msg = create_unread_dm_message(token)
-#         ds_client.write_to_svr(conn, send_new_req_msg)
-
-# def send_all_req(conn: ds_client.Connection, token: str):
-          
-#     '''
-
-#     Sends a json message to the DSU server to request all messages
-
-#     '''
-
-#     send_new_all_msg = create_all_dm_message(token)
-#     ds_client.write_to_svr(conn, send_new_all_msg)
-
-
 def get_msg_list_from_json(json_msg) -> list:
     svr_msg = extract_json(json_msg)
     messages_list = svr_msg.message
@@ -212,7 +177,8 @@ def print_messages(messages_to_print: list[dict]) -> None:
     print()
 
 
-def interpret_svr_message_list(svr_msg: str) -> None:
+def interpret_svr_message_list(svr_msg: str, output: bool) -> None:
     msg_list = get_msg_list_from_json(svr_msg)
-    print_messages(msg_list)
+    if output:
+        print_messages(msg_list)
     return msg_list
