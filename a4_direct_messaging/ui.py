@@ -81,13 +81,33 @@ def opened_file_ui(directory: str, mode: bool) -> str:
                 f'\n{"-addpost [NEW POST]":20}|{"-posts":20}' +
                 f'\n{"-delpost [ID]":20}|{"-post [ID]":20}' +
                 f'\n{" ":20}|{"-all":20}' +
-                "\nPUB_POST [ID] - Publishes a post entry onto DSU server"
-                "\nPUB_BIO - Publishes a new bio onto the DSU server"
+                "\nPUB_POST [ID] - Publishes a post entry to DSU server" +
+                "\nPUB_BIO - Publishes a new bio to DSU server" +
+                "\nPUB_POST_BIO [ID] Publishes a post and bio to DSU server" +
+                "\nMSG - Opens the direct messenging platform for the account." +
                 '\nCL - Close file, enter main commands\n' +
                 "\nPlease input your command in the correct format:" +
                 "\n[COMMAND] [[-]OPTION] [INPUT]\n")
 
     return "\n"
+
+
+def direct_messaging_ui(username: str, mode: bool) -> str:
+
+    '''
+
+    Contains the menu for the direct messaging aspect of DSU.
+
+    '''
+
+    if not mode:
+        return (f"COMMAND MENU for {username}" +
+                "\nDM [RECEPIENT] [MESSAGE] - send a dm to another user" +
+                "\nUNREAD - Get unread messages from server" +
+                "\nALL - Get all messages from server" +
+                "\n Q - Quit DM Menu" +
+                "\nPlease input your command in the correct format:" +
+                "\n[COMMAND] [INPUT]\n")
 
 
 def set_new_profile(new_attribute: str, mode):

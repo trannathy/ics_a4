@@ -1,8 +1,6 @@
 '''
 
-A3: DSU profiles with DSU Server Integration
-This is where the user interacts with the program to create, edit, view, and
-delete DSU files.
+43: DSU with Direct Messaging
 
 '''
 
@@ -10,12 +8,14 @@ delete DSU files.
 # THYNT1@UCI.EDU
 # 90526048
 
+
 import shlex
 import os
 from pathlib import Path
 from pathlib import WindowsPath
 
 import ds_client
+import ds_messenger
 import Profile
 import ui
 
@@ -167,10 +167,11 @@ class FileCommands:
         if command_line[0] == "P" and len(command_line) > 1:
             return self.print_command_check_validity(command_line)
 
-        if command_line[0] == "PUB_POST" and len(command_line) == 2:
-            return self.publish_command_check_validity(command_line)
+        if (command_line[0] in ["PUB_POST", "PUB_POST_BIO"] and 
+            len(command_line) == 2):
+                return self.publish_command_check_validity(command_line)
 
-        if command_line[0] == "PUB_BIO" and len(command_line) == 1:
+        if command_line[0] in ["PUB_BIO", "MSG"] and len(command_line) == 1:
             return True
 
         print(ui.OUTPUT_COMMAND_INVALID)
@@ -490,7 +491,7 @@ class FileCommands:
             post_to_pub = posts_list[post_id].get_entry()
             send_success = ds_client.send(HOST, PORT, prof.username,
                                           prof.password, post_to_pub)
-            print(f"PUBLISH BIO SUCCESSFUL: {send_success}\n")
+            print(f"PUBLISH POST SUCCESSFUL: {send_success}\n")
 
         except IndexError:
             print(ui.OUTPUT_INDEX_ERROR)
@@ -509,6 +510,30 @@ class FileCommands:
                                       prof.password, "", prof.bio)
 
         print(f"PUBLISH BIO SUCCESSFUL: {send_success}\n")
+
+    def publish_both(self, command_list: list[str], path: str):
+
+        '''
+
+        Sends a request to publish a post onto the DSU server
+
+        '''
+
+        prof = Profile.Profile()
+        prof.load_profile(path)
+
+        posts_list = prof.get_posts()
+
+        post_id = int(command_list[1])
+
+        try:
+            post_to_pub = posts_list[post_id].get_entry()
+            send_success = ds_client.send(HOST, PORT, prof.username,
+                                          prof.password, post_to_pub, prof.bio)
+            print(f"PUBLISH BOTH SUCCESSFUL: {send_success}\n")
+
+        except IndexError:
+            print(ui.OUTPUT_INDEX_ERROR)
 
     def file_run(self, path: str, mode: bool) -> None:
 
@@ -544,8 +569,101 @@ class FileCommands:
 
                 elif file_command[0] == "PUB_BIO":
                     self.publish_bio(path)
+                
+                elif file_command[0] == "PUB_POST_BIO":
+                    self.publish_both(file_command, path)
+
+                elif file_command[0] == "MSG":
+                    prof = Profile.Profile()
+                    prof.load_profile(path)
+
+                    messenger = ds_messenger.DirectMessenger(prof.dsuserver,
+                                                             prof.username,
+                                                             prof.password)
+                    messenger.dm_run(path, mode)
 
                 self.file_run(path, mode)
+
+
+# class DMCommands:
+
+#     '''
+
+#     Stores all the the commands for the direct messaging systen.
+
+#     '''
+#     def __init__(self, dsuserver: str, username: str, password: str):
+#         self.dsuserver = dsuserver
+#         self.username = username
+#         self.password = password
+#         self.token = None
+
+#     def dm_command_intake(self, path: str, mode: bool) -> str:
+    
+#         '''
+
+#         Gets a dm command from the user
+
+#         '''
+
+#         profile = Profile.Profile()
+#         profile.load_profile(path)
+
+#         user_input = input(ui.direct_messaging_ui(profile.username, mode))
+#         return user_input
+
+#     def dm_command_check_validity(self, command_line: str) -> bool:
+
+#         '''
+
+#         Makes sure that the dm command is an option
+
+#         '''
+
+#         if command_line[0] == "DM" and len(command_line) == 3:
+#             return True
+
+#         elif command_line[0] in ["UNREAD", "ALL"] and len(command_line) == 1:
+#             return True
+
+#         print(ui.OUTPUT_COMMAND_INVALID)
+#         return False
+
+#     def dm_run(self, path: str, mode: bool):
+    
+#         '''
+
+#         Asks for dm commands and runs them
+
+#         '''
+
+#         dm_command = self.dm_command_intake(path, mode)
+
+#         if dm_command.strip() != "Q":
+#             try:
+#                 dm_command = shlex.split(dm_command)
+
+#             except ValueError:
+#                 print(ui.OUTPUT_COMMAND_INVALID)
+#                 self.dm_run(path, mode)
+        
+#             else:
+#                 if self.dm_command_check_validity(dm_command) is False:
+#                     pass
+
+#                 elif dm_command[0] == "DM":
+#                     dm = ds_messenger.DirectMessenger(self.dsuserver,
+#                                                     self.username,
+#                                                     self.password)
+#                     dm.send(dm_command[1], dm_command[2])
+
+#                 elif dm_command[0] == "UNREAD":
+#                     pass
+
+#                 elif dm_command[0] == "ALL":
+#                     pass
+
+#                 self.dm_run()
 
 
 def create_file(command_line: list, admin) -> None:

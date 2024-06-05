@@ -9,13 +9,13 @@ ICS 32 DSU Server.
 # THYNT1@UCI.EDU
 # 90526048
 
+import ds_protocol
 from collections import namedtuple
 import socket
 
-import ds_protocol
+
 
 OUTPUT_DSU_SERVER_ERROR = "ERROR: COULD NOT CONNECT TO OR READ FROM THE SERVER"
-
 Connection = namedtuple('Connection', ['socket', 'send', 'recv'])
 
 
@@ -50,11 +50,11 @@ def send(server: str, port: int, username: str, password: str, message: str,
 
         if (svr_type != "error" and svr_type is not None) and message != "":
             send_post(connection, message, user_token)
-            svr_type, token_catch = interpret_svr_msg(connection)
+            svr_type, user_token = interpret_svr_msg(connection)
 
-        elif svr_type != "error" and svr_type is not None and bio is not None:
+        if (svr_type != "error" and svr_type is not None) and bio is not None:
             send_bio(connection, bio, user_token)
-            svr_type, token_catch = interpret_svr_msg(connection)
+            svr_type, user_token = interpret_svr_msg(connection)
 
         disconnect(connection)
 
@@ -101,6 +101,42 @@ def send_bio(conn: Connection, new_bio: str, token: str):
 
     bio_msg = ds_protocol.create_bio_msg(new_bio, token)
     write_to_svr(conn, bio_msg)
+
+
+def send_dm(conn: Connection, rec: str, msg: str, 
+                token: str):
+  
+        '''
+
+        Sends a json message to the DSU server to send a dm
+
+        '''
+
+        send_dm_msg = ds_protocol.create_send_dm_message(msg, rec, token)
+        write_to_svr(conn, send_dm_msg)
+
+
+def send_new_req(conn: Connection, token: str):
+          
+        '''
+
+        Sends a json message to the DSU server to request unread/new messages
+
+        '''
+
+        send_new_req_msg = ds_protocol.create_unread_dm_message(token)
+        write_to_svr(conn, send_new_req_msg)
+
+def send_all_req(conn: Connection, token: str):
+          
+    '''
+
+    Sends a json message to the DSU server to request all messages
+
+    '''
+
+    send_new_all_msg = ds_protocol.create_all_dm_message(token)
+    write_to_svr(conn, send_new_all_msg)
 
 
 def connect_to_server(host: str, port: int):

@@ -13,6 +13,7 @@ protocol-adhering commands to send to the DSU server.
 
 import json
 import time
+import ds_client
 from collections import namedtuple
 
 # Namedtuple to hold the values retrieved from json messages.
@@ -29,11 +30,14 @@ def extract_json(json_msg: str) -> tuple:
     '''
 
     ex_dict = json_to_dict(json_msg)
-    ex_json = Response(ex_dict["type"], ex_dict["message"], ex_dict["token"])
+    try:
+        ex_json = Response(ex_dict["type"], ex_dict["message"], ex_dict["token"])
+    except KeyError:
+         ex_json = Response(ex_dict["type"], ex_dict["messages"], ex_dict["token"])
     return ex_json
 
 
-def json_to_dict(json_to_decode: str):
+def json_to_dict(json_to_decode: str) -> dict:
 
     '''
 
@@ -53,7 +57,7 @@ def json_to_dict(json_to_decode: str):
     return json_dict
 
 
-def get_dict_lists(svr_dict: dict):
+def get_dict_lists(svr_dict: dict) -> tuple:
 
     '''
 
@@ -77,7 +81,7 @@ def get_dict_lists(svr_dict: dict):
     return keys, values
 
 
-def create_join_msg(username, password):
+def create_join_msg(username: str, password: str) -> str:
 
     '''
 
@@ -90,7 +94,7 @@ def create_join_msg(username, password):
     return msg
 
 
-def create_post_msg(post_entry, user_token):
+def create_post_msg(post_entry: str, user_token: str) -> str:
 
     '''
 
@@ -104,7 +108,7 @@ def create_post_msg(post_entry, user_token):
     return msg
 
 
-def create_bio_msg(user_bio, user_token):
+def create_bio_msg(user_bio: str, user_token: str) -> str:
 
     '''
 
@@ -115,3 +119,100 @@ def create_bio_msg(user_bio, user_token):
     bio_pub = f'{{"entry": "{user_bio}", "timestamp": "{time.time()}"}}'
     msg = f'{{"token": "{user_token}", "bio": {bio_pub}}}'
     return msg
+
+
+def create_send_dm_message(user_message: str, user_recipient: str,
+                           user_token: str) -> str:
+    
+    '''
+
+    Creates a send dm message adhering to DSU protocol.
+
+    '''
+
+    dm = (f'{{"entry": "{user_message}", "recipient": "{user_recipient}", ' +
+                f'"timestamp": "{time.time()}"}}')
+    msg = f'{{"token": "{user_token}", "directmessage": {dm}}}'
+    return msg
+
+
+def create_unread_dm_message(user_token: str) -> str:
+     
+    '''
+
+    Creates an unread dms request message adhering to DSU protocol.
+
+    '''
+   
+    msg = f'{{"token": "{user_token}", "directmessage": "new"}}'
+    return msg
+
+
+def create_all_dm_message(user_token: str) -> str:
+     
+    '''
+
+    Creates an all dms request message adhering to DSU protocol.
+
+    '''
+   
+    msg = f'{{"token": "{user_token}", "directmessage": "all"}}'
+    return msg
+
+
+# def send_dm(conn: ds_client.Connection, rec: str, msg: str, 
+#                 token: str):
+  
+#         '''
+
+#         Sends a json message to the DSU server to send a dm
+
+#         '''
+
+#         send_dm_msg = create_send_dm_message(msg, rec, token)
+#         ds_client.write_to_svr(conn, send_dm_msg)
+
+# def send_new_req(conn: ds_client.Connection, token: str):
+          
+#         '''
+
+#         Sends a json message to the DSU server to request unread/new messages
+
+#         '''
+
+#         send_new_req_msg = create_unread_dm_message(token)
+#         ds_client.write_to_svr(conn, send_new_req_msg)
+
+# def send_all_req(conn: ds_client.Connection, token: str):
+          
+#     '''
+
+#     Sends a json message to the DSU server to request all messages
+
+#     '''
+
+#     send_new_all_msg = create_all_dm_message(token)
+#     ds_client.write_to_svr(conn, send_new_all_msg)
+
+
+def get_msg_list_from_json(json_msg) -> list:
+    svr_msg = extract_json(json_msg)
+    messages_list = svr_msg.message
+    return messages_list
+
+
+def print_messages(messages_to_print: list[dict]) -> None:
+    if len(messages_to_print) == 0:
+        print("\nNo messages to show.\n")
+    for msg in messages_to_print:
+        print()
+        print(f"From User: {msg['from']}")
+        print(msg['message'])
+        print(f"Time: {msg['timestamp']}")
+    print()
+
+
+def interpret_svr_message_list(svr_msg: str) -> None:
+    msg_list = get_msg_list_from_json(svr_msg)
+    print_messages(msg_list)
+    return msg_list
