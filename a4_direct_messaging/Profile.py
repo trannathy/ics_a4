@@ -202,10 +202,9 @@ class Profile:
     def make_reversed_messages(self, msg_list: list) -> list: 
         list_of_messages = []
         for msg in msg_list:
-            try:
-                new_msg = Messages(msg["message"], msg["from"], msg["timestamp"])
+            new_msg = Messages(msg["message"], msg["from"], msg["timestamp"])
             list_of_messages.append(new_msg)
-        return list_of_messages[::-1]
+        return list_of_messages
     
     def reorganize_message_list(self, msg_list: list) -> dict:
         senders_new_old = []
@@ -225,10 +224,17 @@ class Profile:
         return message_dict
 
     def update_messages(self, all_messages: list) -> None:
-
+        print("TEST NEW_MESSAGE_LIST:", all_messages)
         msgs_new_old = self.make_reversed_messages(all_messages)
         chronological_msgs = self.reorganize_message_list(msgs_new_old)
-        self._messages = chronological_msgs
+        print("TEST NEW_MESSAGES:", chronological_msgs) #test
+
+        for sender in chronological_msgs:
+            if sender not in self._messages.keys():
+                self._messages[sender] = []
+            for msg in chronological_msgs[sender]:
+                self._messages[sender].append(msg)
+                print("TEST OFFLINE APPENDED:", msg) #test
 
     def save_profile(self, path: str) -> None:
         p = Path(path)

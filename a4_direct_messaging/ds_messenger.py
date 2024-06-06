@@ -167,8 +167,12 @@ class DirectMessenger:
         print(ui.OUTPUT_COMMAND_INVALID)
         return False
 
-    def save_dms_local(self, prof_path: str) -> bool:
-        msg_hist = self.retrieve_all(False)
+    def save_dms_local(self, prof_path: str, new=False,
+                       msg_hist=None) -> bool:
+        if msg_hist is None and new:
+            msg_hist = self.retrieve_all(False)
+        elif msg_hist is None and not new:
+            msg_hist = self.retrieve_new(False)
 
         if msg_hist is not None:
             profile = Profile.Profile()

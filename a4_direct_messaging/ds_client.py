@@ -164,9 +164,13 @@ def connect_to_server(host: str, port: int, output = True) -> None:
 
     except ConnectionError as ce:
         raise DSUServerError(OUTPUT_DSU_SERVER_ERROR) from ce
+    
+    except Exception as e:
+        raise DSUServerError(OUTPUT_DSU_SERVER_ERROR) from e
 
 
 def disconnect(conn: Connection, output=True):
+
 
     '''
 
