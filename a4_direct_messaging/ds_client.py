@@ -127,6 +127,7 @@ def send_new_req(conn: Connection, token: str):
         send_new_req_msg = ds_protocol.create_unread_dm_message(token)
         write_to_svr(conn, send_new_req_msg)
 
+
 def send_all_req(conn: Connection, token: str):
           
     '''
@@ -137,6 +138,7 @@ def send_all_req(conn: Connection, token: str):
 
     send_new_all_msg = ds_protocol.create_all_dm_message(token)
     write_to_svr(conn, send_new_all_msg)
+
 
 
 def connect_to_server(host: str, port: int, output = True) -> None:

@@ -1,49 +1,43 @@
-# Profile.py
-#
-# ICS 32
-# Assignment #2: Journal
-#
-# Author: Mark S. Baldwin, modified by Alberto Krone-Martins
-#
-# v0.1.9
+'''
+Profile.py
 
-# You should review this code to identify what features you need to support
-# in your program for assignment 2.
-#
-# YOU DO NOT NEED TO READ OR UNDERSTAND THE JSON SERIALIZATION ASPECTS OF THIS
-# CODE RIGHT NOW, though can you certainly take a look at it if you are curious
-# since we already covered a bit of the JSON format in class.
+ICS 32
+Assignment #2: Journal
+
+Author: Mark S. Baldwin, modified by Alberto Krone-Martins
+
+v0.1.9
+
+You should review this code to identify what features you need to support
+in your program for assignment 2.
+
+YOU DO NOT NEED TO READ OR UNDERSTAND THE JSON SERIALIZATION ASPECTS OF THIS
+CODE RIGHT NOW, though can you certainly take a look at it if you are curious
+since we already covered a bit of the JSON format in class.
+'''
 
 import json
 import time
 from pathlib import Path
 
 
-"""
-
-
-DsuFileError is a custom exception handler that you should catch in your own
-code. It is raised when attempting to load or save Profile objects to file
-the system.
-
-
-"""
-
-
 class DsuFileError(Exception):
-    pass
+    """
 
+    DsuFileError is a custom exception handler that you should catch in your
+    own code. It is raised when attempting to load or save Profile objects t
+    file the system.
 
-"""
-DsuProfileError is a custom exception handler that you should catch in your
-own code. It mis raised when attempting to deserialize a dsu file to a Profile
-object.
-
-"""
+    """
 
 
 class DsuProfileError(Exception):
-    pass
+    """
+    DsuProfileError is a custom exception handler that you should catch in
+    your own code. It mis raised when attempting to deserialize a dsu file
+    to a Profile object.
+
+    """
 
 
 class Post(dict):
@@ -53,6 +47,10 @@ class Post(dict):
     currently supports two features: A timestamp property that is set upon
     instantiation and when the entry object is set and an entry property that
     stores the post message.
+
+    The property method is used to support get and set capability for entry
+    and time values. When the value for entry is changed, or set, the
+    timestamp field is updated to the current time.
 
     """
 
@@ -65,29 +63,47 @@ class Post(dict):
         dict.__init__(self, entry=self._entry, timestamp=self._timestamp)
 
     def set_entry(self, entry):
+
+        '''
+
+        Sets a post entry and also a timestamp based on the current time.
+
+        '''
+
         self._entry = entry
         dict.__setitem__(self, 'entry', entry)
-        # If timestamp has not been set, generate a new from time module
         if self._timestamp == 0:
             self._timestamp = time.time()
 
     def get_entry(self):
+
+        '''
+
+        Gets the message/entry belonging to the post
+        '''
+
         return self._entry
 
-    def set_time(self, time: float):
-        self._timestamp = time
+    def set_time(self, timestamp: float):
+
+        '''
+
+        Sets a timestamp for the post
+
+        '''
+
+        self._timestamp = timestamp
         dict.__setitem__(self, 'timestamp', time)
 
     def get_time(self):
+
+        '''
+
+        Gets the time from the post
+
+        '''
+
         return self._timestamp
-
-    """
-
-    The property method is used to support get and set capability for entry
-    and time values. When the value for entry is changed, or set, the
-    timestamp field is updated to the current time.
-
-    """
 
     entry = property(get_entry, set_entry)
     timestamp = property(get_time, set_time)
@@ -109,15 +125,6 @@ class Messages(dict):
 
         dict.__init__(self, msg=self.msg, sender=self.sender,
                       timestamp=self.timestamp)
-
-    def get_message(self):
-        return self._msg
-
-    def get_sender(self):
-        return self._sender
-
-    def get_time(self):
-        return self._timestamp
 
 
 class Profile:
@@ -144,77 +151,83 @@ class Profile:
         self._posts = []          # OPTIONAL
         self._messages = {}        # OPTIONAL
 
-    """
-
-    add_post accepts a Post object as parameter and appends it to the posts
-    list. Posts are stored in a list object in the order they are added. So
-    if multiple Posts objects are created, but added to the Profile in a
-    different order, it is possible for the list to not be sorted by the
-    Post.timestamp property. So take caution as to how you implement your
-    add_post code.
-
-    """
-
     def add_post(self, post: Post) -> None:
+
+        """
+
+        add_post accepts a Post object as parameter and appends it to the posts
+        list. Posts are stored in a list object in the order they are added. So
+        if multiple Posts objects are created, but added to the Profile in a
+        different order, it is possible for the list to not be sorted by the
+        Post.timestamp property. So take caution as to how you implement your
+        add_post code.
+
+        """
+
         self._posts.append(post)
 
-    """
-
-    del_post removes a Post at a given index and returns True if successful
-    and False if an invalid index was supplied.
-
-    To determine which post to delete you must implement your own search
-    operation on the posts returned from the get_posts function to find
-    the correct index.
-
-    """
-
     def del_post(self, index: int) -> bool:
+
+        """
+
+        del_post removes a Post at a given index and returns True if successful
+        and False if an invalid index was supplied.
+
+        To determine which post to delete you must implement your own search
+        operation on the posts returned from the get_posts function to find
+        the correct index.
+
+        """
+
         try:
             del self._posts[index]
             return True
         except IndexError:
             return False
 
-    """
-
-    get_posts returns the list object containing all posts that have been
-    added to the Profile object
-
-    """
-
     def get_posts(self) -> list[Post]:
+
+        """
+
+        get_posts returns the list object containing all posts that have been
+        added to the Profile object
+
+        """
+
         return self._posts
 
-    """
+    def make_messages(self, msg_list: list) -> list:
 
-    save_profile accepts an existing dsu file to save the current instance
-    of Profile to the file system.
+        '''
 
-    Example usage:
+        uses a list of message dictionaries to create a list of
+        Messages following the Messages class
 
-    profile = Profile()
-    profile.save_profile('/path/to/file.dsu')
+        '''
 
-    Raises DsuFileError
-
-    """
-    def make_reversed_messages(self, msg_list: list) -> list: 
         list_of_messages = []
         for msg in msg_list:
             new_msg = Messages(msg["message"], msg["from"], msg["timestamp"])
             list_of_messages.append(new_msg)
         return list_of_messages
-    
+
     def reorganize_message_list(self, msg_list: list) -> dict:
+
+        '''
+
+        Gets a list of Messages and organizes it into a dictionary,
+        with the contact as the key.
+
+        '''
+
         senders_new_old = []
 
         for msg in msg_list:
             if msg.sender not in senders_new_old:
                 senders_new_old.append(msg.sender)
-        
+
         message_dict = {}
-    
+
         for sender in senders_new_old:
             message_dict[sender] = []
             for msg in msg_list:
@@ -224,70 +237,89 @@ class Profile:
         return message_dict
 
     def update_messages(self, all_messages: list) -> None:
-        print("TEST NEW_MESSAGE_LIST:", all_messages)
-        msgs_new_old = self.make_reversed_messages(all_messages)
+
+        '''
+
+        Locally stores new messages from the server onto a dsu file.
+
+        '''
+
+        msgs_new_old = self.make_messages(all_messages)
         chronological_msgs = self.reorganize_message_list(msgs_new_old)
-        print("TEST NEW_MESSAGES:", chronological_msgs) #test
 
         for sender in chronological_msgs:
-            if sender not in self._messages.keys():
+            if sender not in self._messages:
                 self._messages[sender] = []
             for msg in chronological_msgs[sender]:
                 self._messages[sender].append(msg)
-                print("TEST OFFLINE APPENDED:", msg) #test
 
     def save_profile(self, path: str) -> None:
+
+        """
+
+        save_profile accepts an existing dsu file to save the current instance
+        of Profile to the file system.
+
+        Example usage:
+
+        profile = Profile()
+        profile.save_profile('/path/to/file.dsu')
+
+        Raises DsuFileError
+
+        """
+
         p = Path(path)
 
         if p.exists() and p.suffix == '.dsu':
             try:
-                f = open(p, 'w')
-                json.dump(self.__dict__, f)
-                f.close()
+                with open(p, 'w', encoding="utf-8") as f:
+                    json.dump(self.__dict__, f)
             except Exception as ex:
                 raise DsuFileError("Error while attempting to",
-                                   "process the DSU file.", ex)
+                                   "process the DSU file.") from ex
         else:
             raise DsuFileError("Invalid DSU file path or type")
 
-    """
-
-    load_profile will populate the current instance of Profile with data stored
-    in a DSU file.
-
-    Example usage:
-
-    profile = Profile()
-    profile.load_profile('/path/to/file.dsu')
-
-    Raises DsuProfileError, DsuFileError
-
-    """
-
     def load_profile(self, path: str) -> None:
+
+        """
+
+        load_profile will populate the current instance of Profile with
+        data stored in a DSU file.
+
+        Example usage:
+
+        profile = Profile()
+        profile.load_profile('/path/to/file.dsu')
+
+        Raises DsuProfileError, DsuFileError
+
+        """
+
         p = Path(path)
 
         if p.exists() and p.suffix == '.dsu':
             try:
-                f = open(p, 'r')
-                obj = json.load(f)
-                self.username = obj['username']
-                self.password = obj['password']
-                self.dsuserver = obj['dsuserver']
-                self.bio = obj['bio']
-                for post_obj in obj['_posts']:
-                    post = Post(post_obj['entry'], post_obj['timestamp'])
-                    self._posts.append(post)
-        
-                for sender_obj in obj['_messages']:
-                    sender_msg_list = []
-                    for msg in obj['_messages'][sender_obj]:
-                        new_msg = Messages(msg['msg'], msg['sender'], msg['timestamp'])
-                        sender_msg_list.append(new_msg)
-                    self._messages[sender_obj] = sender_msg_list
+                with open(p, 'r', encoding="utf-8") as f:
+                    obj = json.load(f)
+                    self.username = obj['username']
+                    self.password = obj['password']
+                    self.dsuserver = obj['dsuserver']
+                    self.bio = obj['bio']
+                    for post_obj in obj['_posts']:
+                        post = Post(post_obj['entry'], post_obj['timestamp'])
+                        self._posts.append(post)
 
-                f.close()
+                    for sender_obj in obj['_messages']:
+                        sender_msg_list = []
+                        for msg in obj['_messages'][sender_obj]:
+                            new_msg = Messages(msg['msg'], msg['sender'],
+                                               msg['timestamp'])
+                            sender_msg_list.append(new_msg)
+                        self._messages[sender_obj] = sender_msg_list
+
             except Exception as ex:
-                raise DsuProfileError(ex)
+                raise DsuProfileError() from ex
         else:
             raise DsuFileError()

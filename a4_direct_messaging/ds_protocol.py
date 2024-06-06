@@ -177,8 +177,11 @@ def print_messages(messages_to_print: list[dict]) -> None:
     print()
 
 
-def interpret_svr_message_list(svr_msg: str, output: bool) -> None:
-    msg_list = get_msg_list_from_json(svr_msg)
-    if output:
-        print_messages(msg_list)
-    return msg_list
+def interpret_svr_message_list(svr_msg: str, output: bool):
+    try:
+        msg_list = get_msg_list_from_json(svr_msg)
+        if output:
+            print_messages(msg_list)
+        return msg_list
+    except Exception:
+        raise ds_client.DSUServerError("COULD NOT INTERPRET SERVER MESSAGE")

@@ -8,7 +8,9 @@ from pathlib import WindowsPath
 import Profile
 import time
 
+HOST = "168.235.86.101"
 PORT = 3021
+
 USER_DM_BG = "#ffe6ed"
 USER_DM_TEXT = "#94475d"
 USER_DM_FG = "#d68da2"
@@ -241,6 +243,11 @@ class MainApp(tk.Frame):
                 dm = self.format_contact_message(msg)
                 self.body.insert_contact_message(dm)
     
+    def update_contact_list(self, new_msgs: list) -> None:
+        for msg in new_msgs:
+            if msg["from"] not in self.body._contacts:
+                self.body.insert_contact(msg["from"])
+
     def set_up_gui_new_prof(self):
         sender_dict = self.get_local_messages()
         if len(sender_dict) == 0:
@@ -357,6 +364,7 @@ class MainApp(tk.Frame):
             dsu_file = self.get_dsu_path_user(self.username)
             self.dm_local_save(dsu_file, new_msgs)
             self.update_current_chat(new_msgs)
+            self.update_contact_list(new_msgs)
         main.after(2000, self.check_new)
 
     def _draw(self):
