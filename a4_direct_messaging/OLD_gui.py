@@ -1,7 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 from typing import Text
+import ds_messenger
+import ds_client
+from pathlib import Path
+from pathlib import WindowsPath
+import Profile
 
+PORT = 3021
 
 class Body(tk.Frame):
     def __init__(self, root, recipient_selected_callback=None):
@@ -93,7 +99,8 @@ class Footer(tk.Frame):
             self._send_callback()
 
     def _draw(self):
-        save_button = tk.Button(master=self, text="Send", width=20)
+        save_button = tk.Button(master=self, text="Send",
+                                width=20, command=self.send_click)
         # You must implement this.
         # Here you must configure the button to bind its click to
         # the send_click() function.
@@ -130,6 +137,11 @@ class NewContactDialog(tk.simpledialog.Dialog):
         # such that when the user types, the only thing that appears are
         # * symbols.
         #self.password...
+        self.password_label = tk.Label(frame, width=30, text="Password")
+        self.password_label.pack()
+        self.password_entry = tk.Entry(frame, width=30, show="*")
+        self.password_entry.insert(tk.END, self.pwd)
+        self.password_entry.pack()
 
 
     def apply(self):
@@ -146,29 +158,36 @@ class MainApp(tk.Frame):
         self.password = ''
         self.server = ''
         self.recipient = ''
-        # You must implement this! You must configure and
-        # instantiate your DirectMessenger instance after this line.
-        #self.direct_messenger = ... continue!
-
-        # After all initialization is complete,
-        # call the _draw method to pack the widgets
-        # into the root frame
+       
+        self.direct_messenger = ds_messenger.DirectMessenger()
         self._draw()
-        self.body.insert_contact("studentexw23") # adding one example student.
+        self.body.insert_user_message("test message")
 
     def send_message(self):
-        # You must implement this!
-        pass
+        dm_message = self.body.get_text_entry()
+        send_success = self.direct_messenger.send(self.recipient, dm_message)
+
+        if send_success:
+            success_title = "MESSAGE SUCCESSFUL"
+            success_msg = f'"{dm_message}" sent to {self.recipient}'
+        else:
+            success_title = "MESSAGE UNSUCCESSFUL"
+            success_msg = f'ERROR: Message to {self.recipient} not sent.'
+
+        tk.messagebox.showinfo(title = success_title, message = success_msg)
 
     def add_contact(self):
-        # You must implement this!
-        # Hint: check how to use tk.simpledialog.askstring to retrieve
-        # the name of the new contact, and then use one of the body
-        # methods to add the contact to your contact list
-        pass
+        new_friend_prompt = ("Please enter the username of the contact " +
+                             "you'd like to add.")
+        new_friend = tk.simpledialog.askstring(title="Add Contact",
+                                                prompt=new_friend_prompt)
+        self.body.insert_contact(new_friend)
 
     def recipient_selected(self, recipient):
         self.recipient = recipient
+    
+    def load_message_history(self):
+        pass
 
     def configure_server(self):
         ud = NewContactDialog(self.root, "Configure Account",
@@ -176,17 +195,86 @@ class MainApp(tk.Frame):
         self.username = ud.user
         self.password = ud.pwd
         self.server = ud.server
-        # You must implement this!
-        # You must configure and instantiate your
-        # DirectMessenger instance after this line.
+
+        self.direct_messenger.username = ud.user
+        self.direct_messenger.password = ud.pwd
+        self.direct_messenger.dsuserver = ud.server
+
+        if self.determine_valid_account(ud.user, ud.pwd, ud.server):
+            pass #implement loading messages
+        else:
+            tk.messagebox.showinfo(title = "LOGIN ERROR",
+                                   message = "Invalid Login. Check Details")
+
+
+    def determine_valid_account(self, user: str, pwd: str, svr: str) -> bool:
+        empty = any(len(ele.strip()) == 0 for ele in [user, pwd, svr])
+
+        if empty:
+            return False
+        
+        join_success = ds_client.send(svr, PORT, user, pwd, "")
+
+        if join_success is False:
+            valid_login = self.check_offline(user, pwd)
+            if valid_login:
+                tk.messagebox.showinfo(title = "NO CONNECTION",
+                                   message = "Loading Messages Offline")
+                return True
+    
+            return False
+        dsu_path = Path(self.get_dsu_path_user(user))
+
+        if not dsu_path.exists():
+            self.create_new_dsu_file(svr, user, pwd, dsu_path)
+
+        self.dm_local_save(dsu_path)
+
+        return True
+    
+    def create_new_dsu_file(self, dsuserver, username, password,
+                            file_path: WindowsPath) -> None:
+        file_path.touch()
+        new_prof = Profile.Profile(dsuserver, username, password)
+        print(f"\n{str(file_path)} CREATED\n")
+        new_prof.save_profile(file_path)
+
+    def dm_local_save(self, file_path: WindowsPath) -> None:
+        
+        load_true = self.direct_messenger.save_dms_local(str(file_path))
+
+        if load_true is False :
+            tk.messagebox.showinfo(title = "CONNECTION LOST",
+                                   message = "Please Reconnect")
+
+    def check_offline(self, username: str, password: str) -> bool:
+        test_path = self.get_dsu_path_user(username)
+
+        if not Path(test_path).exists():
+            return False
+        return self.check_password_offline(test_path, password)
+    
+    def get_dsu_path_user(self, username: str) -> str:
+        directory = Path(".")
+        file_name = Path(username + ".dsu")
+        path = directory / file_name
+        return str(path)
+
+    def check_password_offline(self, offline_path, pwd_test) -> bool:
+        prof = Profile.Profile()
+        prof.load_profile(offline_path)
+        return bool(prof.password == pwd_test)
 
     def publish(self, message:str):
         # You must implement this!
         pass
 
     def check_new(self):
-        # You must implement this!
-        pass
+        new_msgs = self.direct_messenger.retrieve_new(False)
+        if new_msgs is not None and len(new_msgs) > 0:
+            dsu_file = self.get_dsu_path_user(self.username)
+            self.dm_local_save(dsu_file)
+        main.after(5000, self.check_new)
 
     def _draw(self):
         # Build a menu and add it to the root frame.
@@ -194,10 +282,10 @@ class MainApp(tk.Frame):
         self.root['menu'] = menu_bar
         menu_file = tk.Menu(menu_bar)
 
-        menu_bar.add_cascade(menu=menu_file, label='File')
-        menu_file.add_command(label='New')
-        menu_file.add_command(label='Open...')
-        menu_file.add_command(label='Close')
+        menu_bar.add_cascade(menu=menu_file, label='DSU Files')
+        menu_file.add_command(label='New DSU File')
+        menu_file.add_command(label='Open DSU FIle')
+        menu_file.add_command(label='Close DSU File')
 
         settings_file = tk.Menu(menu_bar)
         menu_bar.add_cascade(menu=settings_file, label='Settings')

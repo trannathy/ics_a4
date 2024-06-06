@@ -139,7 +139,7 @@ def send_all_req(conn: Connection, token: str):
     write_to_svr(conn, send_new_all_msg)
 
 
-def connect_to_server(host: str, port: int):
+def connect_to_server(host: str, port: int, output = True) -> None:
 
     '''
 
@@ -148,7 +148,8 @@ def connect_to_server(host: str, port: int):
     '''
 
     try:
-        print(f"Connecting to host {host} at port {port}")
+        if output:
+            print(f"Connecting to host {host} at port {port}")
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         my_socket.connect((host, port))
 
@@ -165,7 +166,7 @@ def connect_to_server(host: str, port: int):
         raise DSUServerError(OUTPUT_DSU_SERVER_ERROR) from ce
 
 
-def disconnect(conn: Connection):
+def disconnect(conn: Connection, output=True):
 
     '''
 
@@ -177,7 +178,8 @@ def disconnect(conn: Connection):
     conn.send.close()
     conn.recv.close()
     conn.socket.close()
-    print("DISCONNECTED")
+    if output:
+        print("DISCONNECTED")
 
 
 def write_to_svr(conn: Connection, message_to_send: str):
@@ -226,7 +228,7 @@ def read_message(conn: Connection) -> str:
         return None
 
 
-def interpret_svr_msg(conn: Connection) -> tuple:
+def interpret_svr_msg(conn: Connection, output=True) -> tuple:
 
     '''
 
@@ -236,15 +238,18 @@ def interpret_svr_msg(conn: Connection) -> tuple:
 
     try:
         svr_msg = ds_protocol.extract_json(read_message(conn))
-        print_svr_msg(svr_msg.type, svr_msg.message)
+        if output:
+            print_svr_msg(svr_msg.type, svr_msg.message)
         return svr_msg.type, svr_msg.token
 
     except DSUServerError:
-        print("ERROR: COULD NOT READ SERVER MESSGAE")
+        if output:
+            print("ERROR: COULD NOT READ SERVER MESSGAE")
         return None, None
 
     except TypeError:
-        print("ERROR: COULD NOT READ SERVER MESSGAE")
+        if output:
+            print("ERROR: COULD NOT READ SERVER MESSGAE")
         return None, None
 
 

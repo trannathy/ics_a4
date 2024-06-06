@@ -21,7 +21,7 @@ class DirectMessage:
 
 class DirectMessenger:
 
-    def __init__(self, dsuserver: str, username: str, password: str):
+    def __init__(self, dsuserver=None, username=None, password=None):
         self.dsuserver = dsuserver
         self.username = username
         self.password = password
@@ -52,10 +52,10 @@ class DirectMessenger:
         except ds_client.DSUServerError:
             return False
             
-    def retrieve_new(self):
+    def retrieve_new(self, print_out = True):
         # must return a list of DirectMessage objects containing all new messages
         try:
-            dm_conn = self.connect_dm()
+            dm_conn = self.connect_dm(print_out)
 
             if dm_conn is None:
                 raise ds_client.DSUServerError("ERROR")
@@ -65,20 +65,19 @@ class DirectMessenger:
                 user_token = dm_conn["token"]
 
 
-                messages = self.get_messages_list(connection, user_token, True)
+                messages = self.get_messages_list(connection, user_token, True, print_out)
 
-                ds_client.disconnect(connection)
+                ds_client.disconnect(connection, print_out)
 
                 return messages
     
         except ds_client.DSUServerError:
-            print("ERROR: MESSAGES NOT RETRIEVED")
             return None
 
     def retrieve_all(self, print_out = True) -> list:
         # must return a list of DirectMessage objects containing all messages
         try:
-            dm_conn = self.connect_dm()
+            dm_conn = self.connect_dm(False)
 
             if dm_conn is None:
                 raise ds_client.DSUServerError("ERROR")
@@ -97,20 +96,25 @@ class DirectMessenger:
             print("ERROR: MESSAGES NOT RETRIEVED")
             return None
 
-    def connect_dm(self):
-        
-        connection = ds_client.connect_to_server(self.dsuserver, PORT)
+    def connect_dm(self, output=True):
+        try:
+            connection = ds_client.connect_to_server(self.dsuserver, PORT, output)
 
-        print("SUCESSFULLY CONNECTED TO THE SERVER!")
-        ds_client.send_join(connection, self.username, self.password)
-        svr_type, user_token = ds_client.interpret_svr_msg(connection)
+            if output:
+                print("SUCESSFULLY CONNECTED TO THE SERVER!")
+            
+        except Exception as exc:
+            raise ds_client.DSUServerError("Could Not Connect to the Server")
+        else:
+            ds_client.send_join(connection, self.username, self.password)
+            svr_type, user_token = ds_client.interpret_svr_msg(connection, output)
+            
+            if (svr_type != "error" and svr_type is not None):
+                return {"conn": connection, "token": user_token}
 
-        if (svr_type != "error" and svr_type is not None):
-            return {"conn": connection, "token": user_token}
-
-        if svr_type == "error" or svr_type is None:
-            print("ERROR: CONNECT_DM")
-            return None
+            if svr_type == "error" or svr_type is None:
+                print("ERROR: CONNECT_DM")
+                return None
 
     def get_messages_list(self, conn: ds_client.Connection, token: str,
                           new: bool, output = True) -> list:
@@ -119,6 +123,7 @@ class DirectMessenger:
                 ds_client.send_new_req(conn, token)
             else:
                 ds_client.send_all_req(conn, token)
+
             svr_msg = (ds_client.read_message(conn))
             msg_list = ds_protocol.interpret_svr_message_list(svr_msg, output)
             return msg_list
@@ -162,12 +167,18 @@ class DirectMessenger:
         print(ui.OUTPUT_COMMAND_INVALID)
         return False
 
-    def save_dms_local(self, prof_path: str) -> None:
+    def save_dms_local(self, prof_path: str) -> bool:
         msg_hist = self.retrieve_all(False)
-        profile = Profile.Profile()
-        profile.load_profile(prof_path)
-        profile.update_messages(msg_hist)
-        profile.save_profile(prof_path)
+
+        if msg_hist is not None:
+            profile = Profile.Profile()
+            profile.load_profile(prof_path)
+            profile.update_messages(msg_hist)
+            profile.save_profile(prof_path)
+            return True
+
+        print("Could not retrieve message history")
+        return False
 
     def dm_run(self, path: str, mode: bool):
     

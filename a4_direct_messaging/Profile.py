@@ -202,7 +202,8 @@ class Profile:
     def make_reversed_messages(self, msg_list: list) -> list: 
         list_of_messages = []
         for msg in msg_list:
-            new_msg = Messages(msg["message"], msg["from"], msg["timestamp"])
+            try:
+                new_msg = Messages(msg["message"], msg["from"], msg["timestamp"])
             list_of_messages.append(new_msg)
         return list_of_messages[::-1]
     
