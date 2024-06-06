@@ -253,10 +253,12 @@ class MainApp(tk.Frame):
             self.body.insert_contact(sender)
 
     def configure_server(self):
+        old = (self.username, self.password, self.server)
         new_user = NewContactDialog(self.root, "Configure Account",
                               self.username, self.password, self.server)
-        
-        self.set_up_new_gui(new_user)
+        new = (new_user.user, new_user.pwd, new_user.server)
+        if bool(old != new):
+            self.set_up_new_gui(new_user)
 
     def set_up_new_gui(self, ud: NewContactDialog):
         self.username = ud.user
