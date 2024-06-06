@@ -5,18 +5,16 @@ protocol-adhering commands to send to the DSU server.
 
 '''
 
-# Replace the following placeholders with your information.
 
 # THY TRAN
 # THYNT1@UCI.EDU
 # 90526048
 
+from collections import namedtuple
+
 import json
 import time
 import ds_client
-from collections import namedtuple
-
-# Namedtuple to hold the values retrieved from json messages.
 
 Response = namedtuple("Response", ["type", "message", "token"])
 
@@ -31,9 +29,11 @@ def extract_json(json_msg: str) -> tuple:
 
     ex_dict = json_to_dict(json_msg)
     try:
-        ex_json = Response(ex_dict["type"], ex_dict["message"], ex_dict["token"])
+        ex_json = Response(ex_dict["type"], ex_dict["message"],
+                           ex_dict["token"])
     except KeyError:
-         ex_json = Response(ex_dict["type"], ex_dict["messages"], ex_dict["token"])
+        ex_json = Response(ex_dict["type"], ex_dict["messages"],
+                           ex_dict["token"])
     return ex_json
 
 
@@ -123,7 +123,7 @@ def create_bio_msg(user_bio: str, user_token: str) -> str:
 
 def create_send_dm_message(user_message: str, user_recipient: str,
                            user_token: str) -> str:
-    
+
     '''
 
     Creates a send dm message adhering to DSU protocol.
@@ -131,42 +131,58 @@ def create_send_dm_message(user_message: str, user_recipient: str,
     '''
 
     dm = (f'{{"entry": "{user_message}", "recipient": "{user_recipient}", ' +
-                f'"timestamp": "{time.time()}"}}')
+          f'"timestamp": "{time.time()}"}}')
     msg = f'{{"token": "{user_token}", "directmessage": {dm}}}'
     return msg
 
 
 def create_unread_dm_message(user_token: str) -> str:
-     
+
     '''
 
     Creates an unread dms request message adhering to DSU protocol.
 
     '''
-   
+
     msg = f'{{"token": "{user_token}", "directmessage": "new"}}'
     return msg
 
 
 def create_all_dm_message(user_token: str) -> str:
-     
+
     '''
 
     Creates an all dms request message adhering to DSU protocol.
 
     '''
-   
+
     msg = f'{{"token": "{user_token}", "directmessage": "all"}}'
     return msg
 
 
-def get_msg_list_from_json(json_msg) -> list:
+def get_msg_list_from_json(json_msg: str) -> list:
+
+    '''
+
+    Given a message from the server containing a user's messages,
+    extracts the message so that it is a tuple and from that tuple
+    extracts the list of messages.
+
+    '''
+
     svr_msg = extract_json(json_msg)
     messages_list = svr_msg.message
     return messages_list
 
 
 def print_messages(messages_to_print: list[dict]) -> None:
+
+    '''
+
+    Gets a list of messages and prints them in the terminal, if any.
+
+    '''
+
     if len(messages_to_print) == 0:
         print("\nNo messages to show.\n")
     for msg in messages_to_print:
@@ -177,11 +193,20 @@ def print_messages(messages_to_print: list[dict]) -> None:
     print()
 
 
-def interpret_svr_message_list(svr_msg: str, output: bool):
+def interpret_svr_message_list(svr_msg: str, output=True):
+
+    '''
+
+    Gets an input of a server message and returns just the list
+    of messages it contains.
+    If output is true, then prints the list of messages.
+
+    '''
+
     try:
         msg_list = get_msg_list_from_json(svr_msg)
         if output:
             print_messages(msg_list)
         return msg_list
-    except Exception:
-        raise ds_client.DSUServerError("COULD NOT INTERPRET SERVER MESSAGE")
+    except Exception as exc:
+        raise ds_client.DSUServerError("COULD NOT INTERPRET MESSAGE") from exc

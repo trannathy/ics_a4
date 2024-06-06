@@ -9,10 +9,9 @@ ICS 32 DSU Server.
 # THYNT1@UCI.EDU
 # 90526048
 
-import ds_protocol
 from collections import namedtuple
 import socket
-
+import ds_protocol
 
 
 OUTPUT_DSU_SERVER_ERROR = "ERROR: COULD NOT CONNECT TO OR READ FROM THE SERVER"
@@ -103,33 +102,33 @@ def send_bio(conn: Connection, new_bio: str, token: str):
     write_to_svr(conn, bio_msg)
 
 
-def send_dm(conn: Connection, rec: str, msg: str, 
-                token: str):
-  
-        '''
+def send_dm(conn: Connection, rec: str, msg: str,
+            token: str):
 
-        Sends a json message to the DSU server to send a dm
+    '''
 
-        '''
+    Sends a json message to the DSU server to send a dm
 
-        send_dm_msg = ds_protocol.create_send_dm_message(msg, rec, token)
-        write_to_svr(conn, send_dm_msg)
+    '''
+
+    send_dm_msg = ds_protocol.create_send_dm_message(msg, rec, token)
+    write_to_svr(conn, send_dm_msg)
 
 
 def send_new_req(conn: Connection, token: str):
-          
-        '''
 
-        Sends a json message to the DSU server to request unread/new messages
+    '''
 
-        '''
+    Sends a json message to the DSU server to request unread/new messages
 
-        send_new_req_msg = ds_protocol.create_unread_dm_message(token)
-        write_to_svr(conn, send_new_req_msg)
+    '''
+
+    send_new_req_msg = ds_protocol.create_unread_dm_message(token)
+    write_to_svr(conn, send_new_req_msg)
 
 
 def send_all_req(conn: Connection, token: str):
-          
+
     '''
 
     Sends a json message to the DSU server to request all messages
@@ -140,8 +139,7 @@ def send_all_req(conn: Connection, token: str):
     write_to_svr(conn, send_new_all_msg)
 
 
-
-def connect_to_server(host: str, port: int, output = True) -> None:
+def connect_to_server(host: str, port: int, output=True) -> None:
 
     '''
 
@@ -166,13 +164,12 @@ def connect_to_server(host: str, port: int, output = True) -> None:
 
     except ConnectionError as ce:
         raise DSUServerError(OUTPUT_DSU_SERVER_ERROR) from ce
-    
+
     except Exception as e:
         raise DSUServerError(OUTPUT_DSU_SERVER_ERROR) from e
 
 
 def disconnect(conn: Connection, output=True):
-
 
     '''
 
