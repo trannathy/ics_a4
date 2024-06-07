@@ -49,11 +49,11 @@ def send(server: str, port: int, username: str, password: str, message: str,
 
         if (svr_type != "error" and svr_type is not None) and message != "":
             send_post(connection, message, user_token)
-            svr_type, token_cath = interpret_svr_msg(connection)
+            svr_type, token_catch = interpret_svr_msg(connection)
 
         if (svr_type != "error" and svr_type is not None) and bio is not None:
             send_bio(connection, bio, user_token)
-            svr_type, token_cath = interpret_svr_msg(connection)
+            svr_type, token_catch = interpret_svr_msg(connection)
 
         disconnect(connection)
 

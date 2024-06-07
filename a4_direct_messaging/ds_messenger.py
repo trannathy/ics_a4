@@ -3,12 +3,26 @@
 ds_messenger is responsible for all the direct messaging.
 
 '''
+import time
 
 import ds_client
 import ds_protocol
 import Profile
 
 PORT = 3021
+
+
+class DirectMessage:
+    '''
+
+    This class controls the dms that the user sends
+
+    '''
+
+    def __init__(self):
+        self.recipient = None
+        self.message = None
+        self.timestamp = None
 
 
 class DirectMessenger:
@@ -64,14 +78,19 @@ class DirectMessenger:
 
         '''
 
-        # must return true if message successfully sent, false if send failed.
         try:
             dm_conn = self.connect_dm()
 
             connection = dm_conn["conn"]
             user_token = dm_conn["token"]
 
-            ds_client.send_dm(connection, recipient, message, user_token)
+            new_dm = DirectMessage()
+            new_dm.recipient = recipient
+            new_dm.message = message
+            new_dm.timestamp = time.time()
+
+            ds_client.send_dm(connection, new_dm.recipient, new_dm.message,
+                              user_token)
             svr_type, user_token = ds_client.interpret_svr_msg(connection)
 
             ds_client.disconnect(connection)
@@ -102,6 +121,7 @@ class DirectMessenger:
 
             svr_msg = ds_client.read_message(conn)
             msg_list = ds_protocol.interpret_svr_message_list(svr_msg, output)
+
             return msg_list
 
         except ds_client.DSUServerError:

@@ -431,7 +431,11 @@ class MainApp(tk.Frame):
         '''
 
         dm_message = self.body.get_text_entry()
-        send_success = self.direct_messenger.send(self.recipient, dm_message)
+        if dm_message.strip() == "":
+            send_success = False
+        else:
+            send_success = self.direct_messenger.send(self.recipient,
+                                                      dm_message)
         dm_time = time.time()
 
         if send_success:
@@ -459,12 +463,13 @@ class MainApp(tk.Frame):
         new_friend = tk.simpledialog.askstring(title="Add Contact",
                                                prompt=new_friend_prompt)
 
-        self.body.insert_contact(new_friend)
+        if new_friend is not None and new_friend.strip() != "":
+            self.body.insert_contact(new_friend)
 
-        added_prompt = ("Note: This contact will not save until the user " +
-                        "mesasages you back.")
-        tk.messagebox.showinfo(title=f"New Contact: {new_friend}",
-                               message=added_prompt)
+            added_prompt = ("Note: This contact will not save until the " +
+                            "user mesasages you back.")
+            tk.messagebox.showinfo(title=f"New Contact: {new_friend}",
+                                   message=added_prompt)
 
     def recipient_selected(self, recipient):
 
@@ -758,7 +763,7 @@ class MainApp(tk.Frame):
 
             if entry is not None and entry.strip() != "":
                 post_success = ds_client.send(self.server, PORT, self.username,
-                                            self.password, entry, prof.bio)
+                                              self.password, entry, prof.bio)
                 if post_success:
                     tk.messagebox.showinfo(message="Posted!")
                 else:
