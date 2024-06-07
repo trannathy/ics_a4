@@ -1,6 +1,6 @@
 '''
 
-ds_messenger is responsible for all the direct messaging. 
+ds_messenger is responsible for all the direct messaging.
 
 '''
 
@@ -24,6 +24,35 @@ class DirectMessenger:
         self.username = username
         self.password = password
         self.token = None
+
+    def connect_dm(self, output=True) -> dict:
+
+        '''
+
+        Tries to connect to the DSU server by establishing a socket
+        connection and, if the socket connection is successful, tries
+        sending a join message to the server.
+
+        '''
+
+        try:
+            connection = ds_client.connect_to_server(self.dsuserver,
+                                                     PORT, output)
+            if output:
+                print("SUCESSFULLY CONNECTED TO THE SERVER!")
+
+        except Exception as exc:
+            raise ds_client.DSUServerError("Could Not Connect") from exc
+
+        ds_client.send_join(connection, self.username, self.password)
+        svr_type, user_token = ds_client.interpret_svr_msg(connection,
+                                                           output)
+
+        if (svr_type != "error" and svr_type is not None):
+            connection_dict = {"conn": connection, "token": user_token}
+            return connection_dict
+
+        raise ds_client.DSUServerError("Could Not Login")
 
     def send(self, recipient: str, message: str) -> bool:
 
@@ -55,7 +84,33 @@ class DirectMessenger:
         except ds_client.DSUServerError:
             return False
 
-    def retrieve_new(self, print_out=True):
+    def get_messages_list(self, conn: ds_client.Connection, token: str,
+                          new: bool, output=True):
+
+        '''
+
+        Sends a request for messages (new only or all depending on the
+        new argument). Then, prints the list of messages.
+
+        '''
+
+        try:
+            if new:
+                ds_client.send_new_req(conn, token)
+            else:
+                ds_client.send_all_req(conn, token)
+
+            svr_msg = ds_client.read_message(conn)
+            msg_list = ds_protocol.interpret_svr_message_list(svr_msg, output)
+            return msg_list
+
+        except ds_client.DSUServerError:
+            return None
+
+        except TypeError:
+            return None
+
+    def retrieve_new(self, print_out=True) -> list:
 
         '''
 
@@ -104,68 +159,13 @@ class DirectMessenger:
             user_token = dm_conn["token"]
 
             messages = self.get_messages_list(connection, user_token,
-                                                    False, print_out)
+                                              False, print_out)
 
             ds_client.disconnect(connection)
 
             return messages
 
         except ds_client.DSUServerError:
-            return None
-
-    def connect_dm(self, output=True):
-
-        '''
-
-        Tries to connect to the DSU server by establishing a socket
-        connection and, if the socket connection is successful, tries
-        sending a join message to the server.
-
-        '''
-
-        try:
-            connection = ds_client.connect_to_server(self.dsuserver,
-                                                     PORT, output)
-            if output:
-                print("SUCESSFULLY CONNECTED TO THE SERVER!")
-
-        except Exception as exc:
-            raise ds_client.DSUServerError("Could Not Connect") from exc
-
-        ds_client.send_join(connection, self.username, self.password)
-        svr_type, user_token = ds_client.interpret_svr_msg(connection,
-                                                            output)
-
-        if (svr_type != "error" and svr_type is not None):
-            connection_dict = {"conn": connection, "token": user_token}
-            return connection_dict
-
-        raise ds_client.DSUServerError("Could Not Login")
-
-    def get_messages_list(self, conn: ds_client.Connection, token: str,
-                          new: bool, output=True):
-
-        '''
-
-        Sends a request for messages (new only or all depending on the
-        new arguent). Then, 
-
-        '''
-
-        try:
-            if new:
-                ds_client.send_new_req(conn, token)
-            else:
-                ds_client.send_all_req(conn, token)
-
-            svr_msg = ds_client.read_message(conn)
-            msg_list = ds_protocol.interpret_svr_message_list(svr_msg, output)
-            return msg_list
-
-        except ds_client.DSUServerError:
-            return None
-
-        except TypeError:
             return None
 
     def save_dms_local(self, prof_path: str, new=False,
@@ -176,7 +176,7 @@ class DirectMessenger:
         Saves DMS into a local dsu profile and updates it. If a message
         list is provided, then only addes those. Otherwise, tries to retrieve
         from the server.
-    
+
         '''
 
         if msg_hist is None and new:
@@ -184,12 +184,16 @@ class DirectMessenger:
         elif msg_hist is None and not new:
             msg_hist = self.retrieve_new(False)
 
-        if msg_hist is not None:
-            profile = Profile.Profile()
-            profile.load_profile(prof_path)
+        profile = Profile.Profile()
+        profile.load_profile(prof_path)
+
+        if (msg_hist is not None and profile.username == self.username
+                and profile.password == self.password
+                and profile.dsuserver == self.dsuserver):
+
             profile.update_messages(msg_hist)
             profile.save_profile(prof_path)
             return True
 
-        print("Could not retrieve message history")
+        print("Could not locally save dms")
         return False

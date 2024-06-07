@@ -19,44 +19,6 @@ import ds_client
 Response = namedtuple("Response", ["type", "message", "token"])
 
 
-def extract_json(json_msg: str) -> tuple:
-    '''
-
-    Call the json.loads function on a json string and convert it to a
-    DataTuple object
-
-    '''
-
-    ex_dict = json_to_dict(json_msg)
-    try:
-        ex_json = Response(ex_dict["type"], ex_dict["message"],
-                           ex_dict["token"])
-    except KeyError:
-        ex_json = Response(ex_dict["type"], ex_dict["messages"],
-                           ex_dict["token"])
-    return ex_json
-
-
-def json_to_dict(json_to_decode: str) -> dict:
-
-    '''
-
-    Decodes a json string to a dictionary
-
-    '''
-
-    try:
-        json_obj = json.loads(json_to_decode)
-
-    except json.JSONDecodeError:
-        print("Json cannot be decoded.")
-        return None
-
-    json_keys, json_values = get_dict_lists(json_obj)
-    json_dict = dict(zip(json_keys, json_values))
-    return json_dict
-
-
 def get_dict_lists(svr_dict: dict) -> tuple:
 
     '''
@@ -79,6 +41,48 @@ def get_dict_lists(svr_dict: dict) -> tuple:
         values.append(None)
 
     return keys, values
+
+
+def json_to_dict(json_to_decode: str) -> dict:
+
+    '''
+
+    Decodes a json string to a dictionary of just the dictionary
+    inside of reponse
+
+    '''
+
+    try:
+        json_obj = json.loads(json_to_decode)
+
+    except json.JSONDecodeError:
+        print("Json cannot be decoded.")
+        return None
+
+    json_keys, json_values = get_dict_lists(json_obj)
+    json_dict = dict(zip(json_keys, json_values))
+    return json_dict
+
+
+def extract_json(json_msg: str) -> tuple:
+    '''
+
+    Call the json.loads function on a json string and convert it to a
+    DataTuple object
+
+    '''
+
+    ex_dict = json_to_dict(json_msg)
+    try:
+        ex_json = Response(ex_dict["type"], ex_dict["message"],
+                           ex_dict["token"])
+    except KeyError:
+        ex_json = Response(ex_dict["type"], ex_dict["messages"],
+                           ex_dict["token"])
+    except TypeError:
+        return None
+
+    return ex_json
 
 
 def create_join_msg(username: str, password: str) -> str:
@@ -193,7 +197,7 @@ def print_messages(messages_to_print: list[dict]) -> None:
     print()
 
 
-def interpret_svr_message_list(svr_msg: str, output=True):
+def interpret_svr_message_list(svr_msg: str, output=True) -> list:
 
     '''
 

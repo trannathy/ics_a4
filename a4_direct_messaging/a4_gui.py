@@ -305,7 +305,8 @@ class ConfigureDialog(tk.simpledialog.Dialog):
 
         '''
 
-        self.server_label = tk.Label(master, width=30, text="DS Server Address")
+        self.server_label = tk.Label(master, width=30,
+                                     text="DS Server Address")
         self.server_label.pack()
         self.server_entry = tk.Entry(master, width=30)
         self.server_entry.insert(tk.END, self.server)
@@ -335,6 +336,7 @@ class ConfigureDialog(tk.simpledialog.Dialog):
         self.user = self.username_entry.get()
         self.pwd = self.password_entry.get()
         self.server = self.server_entry.get()
+
 
 class NewDSUDialog(tk.simpledialog.Dialog):
 
@@ -575,7 +577,7 @@ class MainApp(tk.Frame):
 
         old = (self.username, self.password, self.server)
         new_user = ConfigureDialog(self.root, "Configure Account",
-                                    self.username, self.password, self.server)
+                                   self.username, self.password, self.server)
         new = (new_user.user, new_user.pwd, new_user.server)
         if bool(old != new):
             self.set_up_new_gui(new_user)
@@ -742,24 +744,39 @@ class MainApp(tk.Frame):
 
         '''
 
-        Publishes a post onto the web.
+        Publishes a post and bio onto the web.
 
         '''
 
         entry = tk.simpledialog.askstring(title="New Post",
                                           prompt="Enter a message to post:")
 
-        if entry is not None and entry.strip() != "":
-            post_success = ds_client.send(self.server, PORT, self.username,
-                                      self.password, entry)
-            if post_success:
-                tk.messagebox.showinfo(message="Posted!")
-            else:
-                tk.messagebox.showinfo(message="Message Not Posted.")
-        elif entry is not None:
-            tk.messagebox.showinfo(message="Invalid entry")
+        try:
+            prof = Profile.Profile()
+            path = self.get_dsu_path_user(self.username)
+            prof.load_profile(path)
+
+            if entry is not None and entry.strip() != "":
+                post_success = ds_client.send(self.server, PORT, self.username,
+                                            self.password, entry, prof.bio)
+                if post_success:
+                    tk.messagebox.showinfo(message="Posted!")
+                else:
+                    tk.messagebox.showinfo(message="Message Not Posted.")
+            elif entry is not None:
+                tk.messagebox.showinfo(message="Invalid entry")
+        except Profile.DsuFileError:
+            tk.messagebox.showinfo(message="Profile Not Found")
 
     def new_dsu_set_attributes(self, dsu: NewDSUDialog) -> None:
+
+        '''
+
+        Sets the attributes of the application to be the ones specified
+        in the making of the new DSU.
+
+        '''
+
         self.username = dsu.user
         self.password = dsu.pwd
         self.server = dsu.server
@@ -769,9 +786,17 @@ class MainApp(tk.Frame):
         self.direct_messenger.dsuserver = dsu.server
 
     def existing_dsu_set_attributes(self, dsu_path) -> None:
+
+        '''
+
+        If the DSU already exists, sets the the application attributes
+        to the attributes of the existing file.
+
+        '''
+
         prof = Profile.Profile()
         prof.load_profile(dsu_path)
-    
+
         self.username = prof.username
         self.password = prof.password
         self.server = prof.dsuserver
@@ -779,8 +804,16 @@ class MainApp(tk.Frame):
         self.direct_messenger.username = prof.username
         self.direct_messenger.password = prof.password
         self.direct_messenger.dsuserver = prof.dsuserver
-    
+
     def existing_dsu_update(self, new_dsu: NewDSUDialog, path: str) -> bool:
+
+        '''
+
+        If the dsu already exists, sets attributes to match with it.
+        Additionality, if a new bio is provided, changes it within the DSU
+
+        '''
+
         prof = Profile.Profile()
         prof.load_profile(path)
 
@@ -788,7 +821,7 @@ class MainApp(tk.Frame):
             return False
 
         self.new_dsu_set_attributes(new_dsu)
-        
+
         if new_dsu.bio.strip() != "":
             prof.bio = new_dsu.bio
             prof.save_profile(path)
@@ -824,12 +857,14 @@ class MainApp(tk.Frame):
                 out_msg = ("ERROR: DSU File already exists." +
                            "\nProvided login details incorrect.")
             tk.messagebox.showinfo(title="File Already Exists",
-                                       message=out_msg)
+                                   message=out_msg)
 
         elif ds_client.send(dsu.server, PORT, dsu.user, dsu.pwd, ""):
             self.new_dsu_set_attributes(dsu)
             if dsu.bio.strip() != "":
                 bio_add = dsu.bio
+            else:
+                bio_add = None
             self.create_new_dsu_file(self.server, self.username,
                                      self.password, Path(dsu_path), bio_add)
             self.set_up_gui_new_prof()
