@@ -230,10 +230,11 @@ class Footer(tk.Frame):
 
     '''
 
-    def __init__(self, root, send_callback=None):
+    def __init__(self, root, send_callback=None, post_callback=None):
         tk.Frame.__init__(self, root)
         self.root = root
         self._send_callback = send_callback
+        self._post_callback = post_callback
         self.config(bg=USER_DM_FG)
         self._draw()
 
@@ -241,13 +242,25 @@ class Footer(tk.Frame):
 
         '''
 
-        Command for the send box. Gets the output of a click on
+        Command for the send button. Gets the output of a click on
         the send buttton to send a message.
 
         '''
 
         if self._send_callback is not None:
             self._send_callback()
+
+    def post_click(self):
+
+        '''
+
+        Command for the post button. Gets the output of a click on
+        the post buttton to send a message.
+
+        '''
+
+        if self._post_callback is not None:
+            self._post_callback()
 
     def _draw(self):
 
@@ -262,8 +275,14 @@ class Footer(tk.Frame):
                                 bg=USER_DM_BG)
         save_button.pack(fill=tk.BOTH, side=tk.RIGHT, padx=5, pady=5)
 
+        post_button = tk.Button(master=self, text="Publish Post",
+                                width=20, command=self.post_click,
+                                bg=CONTACT_DM_BG)
 
-class NewContactDialog(tk.simpledialog.Dialog):
+        post_button.pack(fill=tk.BOTH, side=tk.LEFT, padx=5, pady=5)
+
+
+class ConfigureDialog(tk.simpledialog.Dialog):
 
     '''
 
@@ -317,6 +336,66 @@ class NewContactDialog(tk.simpledialog.Dialog):
         self.pwd = self.password_entry.get()
         self.server = self.server_entry.get()
 
+class NewDSUDialog(tk.simpledialog.Dialog):
+
+    '''
+
+    Class controlling the dialog box making a new DSU
+
+    '''
+
+    def __init__(self, root, title=None, user='', pwd='', bio=''):
+        self.root = root
+        self.user = user
+        self.pwd = pwd
+        self.bio = bio
+        self.server = "168.235.86.101"
+        super().__init__(root, title)
+
+    def body(self, master):
+
+        '''
+
+        Creates the input boxes for the server, username, and password.
+
+        '''
+
+        note = "New file to be stored in current directory"
+        self.new_dsu_label = tk.Label(master, width=30,
+                                      text=note)
+        self.new_dsu_label.pack()
+
+        self.username_label = tk.Label(master, width=30, text="Username")
+        self.username_label.pack()
+        self.username_entry = tk.Entry(master, width=30)
+        self.username_entry.insert(tk.END, self.user)
+        self.username_entry.pack()
+
+        self.password_label = tk.Label(master, width=30, text="Password")
+        self.password_label.pack()
+        self.password_entry = tk.Entry(master, width=30, show="*")
+        self.password_entry.insert(tk.END, self.pwd)
+        self.password_entry.pack()
+
+        self.bio_label = tk.Label(master, width=30, text="Bio (optional)")
+        self.bio_label.pack()
+        self.bio_entry = tk.Entry(master, width=30)
+        self.bio_entry.insert(tk.END, self.bio)
+        self.bio_entry.pack()
+
+    def apply(self):
+
+        '''
+
+        Gets the entries in the input boxes and sets them as attributes
+        of the class instance.
+
+        '''
+
+        self.user = self.username_entry.get()
+        self.pwd = self.password_entry.get()
+        self.bio = self.bio_entry.get()
+
 
 class MainApp(tk.Frame):
 
@@ -333,12 +412,12 @@ class MainApp(tk.Frame):
         self.password = ''
         self.server = ''
         self.recipient = ''
-
         self.direct_messenger = ds_messenger.DirectMessenger()
+
         self._draw()
         self.configure_server()
 
-    def send_message(self):
+    def send_message(self) -> None:
 
         '''
 
@@ -495,13 +574,13 @@ class MainApp(tk.Frame):
         '''
 
         old = (self.username, self.password, self.server)
-        new_user = NewContactDialog(self.root, "Configure Account",
+        new_user = ConfigureDialog(self.root, "Configure Account",
                                     self.username, self.password, self.server)
         new = (new_user.user, new_user.pwd, new_user.server)
         if bool(old != new):
             self.set_up_new_gui(new_user)
 
-    def set_up_new_gui(self, ud: NewContactDialog):
+    def set_up_new_gui(self, ud: ConfigureDialog):
 
         '''
 
@@ -567,7 +646,7 @@ class MainApp(tk.Frame):
         return True
 
     def create_new_dsu_file(self, dsuserver, username, password,
-                            file_path: WindowsPath) -> None:
+                            file_path: WindowsPath, bio=None) -> None:
 
         '''
 
@@ -578,6 +657,8 @@ class MainApp(tk.Frame):
 
         file_path.touch()
         new_prof = Profile.Profile(dsuserver, username, password)
+        if bio is not None:
+            new_prof.bio = bio
         print(f"\n{str(file_path)} CREATED\n")
         new_prof.save_profile(file_path)
 
@@ -657,13 +738,136 @@ class MainApp(tk.Frame):
         return bool((prof.password == pwd_test) and
                     (prof.dsuserver == svr_test))
 
-    def publish(self, message: str):
+    def publish(self) -> None:
 
         '''
 
         Publishes a post onto the web.
 
         '''
+
+        entry = tk.simpledialog.askstring(title="New Post",
+                                          prompt="Enter a message to post:")
+
+        if entry is not None and entry.strip() != "":
+            post_success = ds_client.send(self.server, PORT, self.username,
+                                      self.password, entry)
+            if post_success:
+                tk.messagebox.showinfo(message="Posted!")
+            else:
+                tk.messagebox.showinfo(message="Message Not Posted.")
+        elif entry is not None:
+            tk.messagebox.showinfo(message="Invalid entry")
+
+    def new_dsu_set_attributes(self, dsu: NewDSUDialog) -> None:
+        self.username = dsu.user
+        self.password = dsu.pwd
+        self.server = dsu.server
+
+        self.direct_messenger.username = dsu.user
+        self.direct_messenger.password = dsu.pwd
+        self.direct_messenger.dsuserver = dsu.server
+
+    def existing_dsu_set_attributes(self, dsu_path) -> None:
+        prof = Profile.Profile()
+        prof.load_profile(dsu_path)
+    
+        self.username = prof.username
+        self.password = prof.password
+        self.server = prof.dsuserver
+
+        self.direct_messenger.username = prof.username
+        self.direct_messenger.password = prof.password
+        self.direct_messenger.dsuserver = prof.dsuserver
+    
+    def existing_dsu_update(self, new_dsu: NewDSUDialog, path: str) -> bool:
+        prof = Profile.Profile()
+        prof.load_profile(path)
+
+        if prof.password != new_dsu.pwd:
+            return False
+
+        self.new_dsu_set_attributes(new_dsu)
+        
+        if new_dsu.bio.strip() != "":
+            prof.bio = new_dsu.bio
+            prof.save_profile(path)
+
+        return True
+
+    def new_dsu_option(self):
+
+        '''
+
+        Command for DSU Files > New DSU File.
+        Allows the user to name a DSU file, if it is a valid
+        login. Opens the file if it already exists.
+
+        '''
+
+        old = (self.username, self.password, self.server)
+
+        dsu = NewDSUDialog(self.root, "New DSU")
+        dsu_path = self.get_dsu_path_user(dsu.user)
+
+        new = (dsu.user, dsu.pwd, dsu.server)
+
+        if old == new:
+            pass
+
+        elif Path(dsu_path).exists():
+            if self.existing_dsu_update(dsu, dsu_path):
+                out_msg = ("DSU File already exists." +
+                           "\nLoading existing file.")
+                self.set_up_gui_new_prof()
+            else:
+                out_msg = ("ERROR: DSU File already exists." +
+                           "\nProvided login details incorrect.")
+            tk.messagebox.showinfo(title="File Already Exists",
+                                       message=out_msg)
+
+        elif ds_client.send(dsu.server, PORT, dsu.user, dsu.pwd, ""):
+            self.new_dsu_set_attributes(dsu)
+            if dsu.bio.strip() != "":
+                bio_add = dsu.bio
+            self.create_new_dsu_file(self.server, self.username,
+                                     self.password, Path(dsu_path), bio_add)
+            self.set_up_gui_new_prof()
+
+    def open_dsu_option(self):
+
+        '''
+
+        Command for DSU Files > Open DSU File.
+        Allows the user to open a DSU File.
+
+        '''
+        directory_str = str(Path("."))
+
+        file_path = filedialog.askopenfilename(initialdir=directory_str)
+
+        if file_path.endswith(".dsu") and (directory_str in file_path):
+            self.existing_dsu_set_attributes(file_path)
+            self.set_up_gui_new_prof()
+        elif file_path.strip() != "":
+            tk.messagebox.showinfo(title="File Error",
+                                   message="Invalid DSU File.")
+
+    def close_dsu_option(self):
+
+        '''
+
+        Command for DSU Files > Close DSU File.
+        Resets the program. Clears all data.
+
+        '''
+
+        self.username = ''
+        self.password = ''
+        self.server = ''
+        self.recipient = ''
+        self.direct_messenger = ds_messenger.DirectMessenger()
+        self.body.clear_all()
 
     def check_new(self):
 
@@ -695,9 +899,12 @@ class MainApp(tk.Frame):
         menu_file = tk.Menu(menu_bar)
 
         menu_bar.add_cascade(menu=menu_file, label='DSU Files')
-        menu_file.add_command(label='New DSU File')
-        menu_file.add_command(label='Open DSU FIle')
-        menu_file.add_command(label='Close DSU File')
+        menu_file.add_command(label='New DSU File',
+                              command=self.new_dsu_option)
+        menu_file.add_command(label='Open DSU FIle',
+                              command=self.open_dsu_option)
+        menu_file.add_command(label='Close DSU File',
+                              command=self.close_dsu_option)
 
         settings_file = tk.Menu(menu_bar)
         menu_bar.add_cascade(menu=settings_file, label='Settings')
@@ -711,11 +918,13 @@ class MainApp(tk.Frame):
         self.body = Body(self.root,
                          recipient_selected_callback=self.recipient_selected)
         self.body.pack(fill=tk.BOTH, side=tk.TOP, expand=True)
-        self.footer = Footer(self.root, send_callback=self.send_message)
+        self.footer = Footer(self.root, send_callback=self.send_message,
+                             post_callback=self.publish)
         self.footer.pack(fill=tk.BOTH, side=tk.BOTTOM)
 
 
 if __name__ == "__main__":
+
     # All Tkinter programs start with a root window. We will name ours 'main'.
     main = tk.Tk()
 
